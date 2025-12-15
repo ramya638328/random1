@@ -1,31 +1,52 @@
 import streamlit as st
+import pandas as pd
 import pickle
-import numpy as np
 
-# Load trained model
-@st.cache_resource
-def load_model():
-    with open("random_forest.pkl", "rb") as f:
-        model = pickle.load(f)
-    return model
+st.title("Random Forest Prediction App")
 
-rf_model = load_model()
+# Upload trained model
+model_file = st.file_uploader("Upload your trained model (.pkl)", type=["pkl"])
+rf_model = None
+if model_file is not None:
+    try:
+        rf_model = pickle.load(model_file)
+        st.success("Model loaded successfully!")
+    except Exception as e:
+        st.error(f"Error loading model: {e}")
 
-# Streamlit UI
-st.title("🎓 Student Grade Prediction")
+# Upload dataset (optional, if needed)
+data_file = st.file_uploader("Upload your dataset (.csv)", type=["csv"])
+df = None
+if data_file is not None:
+    try:
+        df = pd.read_csv(data_file)
+        st.dataframe(df.head())
+    except Exception as e:
+        st.error(f"Error loading dataset: {e}")
 
-Std_Branch = st.number_input("Student Branch (encoded)", min_value=0, max_value=10)
-Std_Course = st.number_input("Student Course (encoded)", min_value=0, max_value=10)
-Std_Marks = st.number_input("Student Marks", min_value=0, max_value=100)
+# Only show inputs if model is loaded
+if rf_model is not None:
+    st.subheader("Enter Input Features")
 
-if st.button("Predict Grade"):
-    input_data = np.array([[Std_Branch, Std_Course, Std_Marks]])
-    prediction = rf_model.predict(input_data)[0]
+    # Example: Adjust these inputs according to your dataset/features
+    feature1 = st.number_input("Feature 1 (e.g., Distance_km)", min_value=0.0)
+    feature2 = st.number_input("Feature 2 (e.g., Preparation_Time_min)", min_value=0.0)
+    feature3 = st.selectbox("Feature 3 (e.g., Traffic_Level)", options=[0,1,2])  # adjust categories
 
-    grade_map = {0: "A", 1: "B", 2: "C"}
-    predicted_grade = grade_map.get(prediction, "Unknown")
+    input_data = pd.DataFrame([[feature1, feature2, feature3]],
+                              columns=['Distance_km','Preparation_Time_min','Traffic_Level'])
 
-    st.success(f"Predicted Grade: {predicted_grade}")
+    if st.button("Predict"):
+        try:
+            prediction = rf_model.predict(input_data)[0]
+            st.success(f"Predicted Output: {prediction}")
+        except Exception as e:
+            st.error(f"Prediction error: {e}")
 
-
-
+# Optional: display uploaded data charts
+if df is not None:
+    st.subheader("Data Preview")
+    st.dataframe(df.head())
+    numeric_cols = df.select_dtypes(include='number').columns.tolist()
+    if numeric_cols:
+        st.line_chart(df[numeric_cols])
