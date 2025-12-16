@@ -26,4 +26,3 @@ if data_file is not None:
     df = pd.read_csv(data_file)
     st.success("Dataset loaded successfully")
     st.dataframe(df.head())
-
